@@ -1,6 +1,9 @@
 # default config.yml for CTWserver
 # config version 1.4.3
 
+General:
+  Debug: false
+
 #Database settings
 Database:
   #Data table name.
@@ -13,6 +16,12 @@ Database:
     user: 'admin'
     password: 'cheesecake'
     ssl: false
+    pool-settings:
+      maximum-pool-size: 15
+      minimum-idle: 10
+      maximum-lifetime: 1800000
+      keepalive-time: 0
+      connection-timeout: 5000
   #This task will scan the mysql database or flat file storage for inactive players and remove them.
   #The scanning takes place after server starts with a 2min delay. Runs on a async thread so server performance will not be affected.
   removeOldUsers:

@@ -1,9 +1,11 @@
 package net.craftersland.ctw.server.achievements;
 
 import net.craftersland.ctw.server.CTW;
+import net.craftersland.ctw.server.database.CTWPlayer;
 import org.bukkit.Achievement;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,8 +19,9 @@ public class ShooterAchievementHandler {
         this.ctw = ctw;
     }
 
-    public void loadInitialAchievements(final Player p) {
-        final int bowKills = this.ctw.getPlayerKillsHandler().getBowKills(p);
+    public void loadInitialAchievements(final @NotNull Player p) {
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int bowKills = ctwPlayer.getBowKills();
         if (bowKills >= this.ctw.getConfigHandler().getInteger("Achievements.Bow-Kills.Kills-For-IV")) {
             if (!this.achievements.containsKey(p)) {
                 this.achievements.put(p, ShooterAchievements.SHOOTER4);
@@ -44,8 +47,9 @@ public class ShooterAchievementHandler {
         this.achievements.remove(p);
     }
 
-    public void checkForAchievements(final Player p) {
-        final int bowKills = this.ctw.getPlayerKillsHandler().getBowKills(p);
+    public void checkForAchievements(final @NotNull Player p) {
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int bowKills = ctwPlayer.getBowKills();
         final ShooterAchievements currentAcievement = this.achievements.get(p);
         if (bowKills >= this.ctw.getConfigHandler().getInteger("Achievements.Bow-Kills.Kills-For-IV")) {
             if (currentAcievement != ShooterAchievements.SHOOTER4) {

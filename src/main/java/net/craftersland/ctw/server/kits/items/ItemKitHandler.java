@@ -31,6 +31,7 @@ public class ItemKitHandler {
     public void sendKit(final @NotNull Player p, final int slotClicked) {
 
         for (int i = 0; i < p.getOpenInventory().countSlots(); i++) {
+            if (p.getOpenInventory().getItem(i) == null) continue;
             if (slotClicked == i) {
                 final String kitKey = this.keyItemMap.get(i);
                 final Double initialBal = CTW.economy.getBalance(p);
@@ -39,7 +40,7 @@ public class ItemKitHandler {
 
                 if (!hasPermission) {
                     this.ctw.getSoundHandler().sendFailedSound(p.getLocation(), p);
-                    p.sendMessage(this.ctw.getKitConfigHandler().getString(kitKey + ".Requirements.Premission.NoPermissionMessage").replaceAll("&", "§"));
+                    p.sendMessage(this.ctw.getKitConfigHandler().getString(kitKey + ".Requirements.Permission.NoPermissionMessage").replaceAll("&", "§"));
                 } else if (!hasAchievement) {
                     this.ctw.getSoundHandler().sendFailedSound(p.getLocation(), p);
                     p.sendMessage(this.ctw.getLanguageHandler().getMessage("ChatMessages.KitLocked").replaceAll("&", "§"));
@@ -77,8 +78,8 @@ public class ItemKitHandler {
 
     public void addItemsToMenu(final Inventory inv, final Player p) {
         if (!this.kitKeys.isEmpty()) {
-
             for (int i = 0; i < inv.getSize(); i++) {
+                if (this.itemMap.get(i) == null) continue;
                 for (final String key : this.kitKeys) {
                     int slot = this.ctw.getKitConfigHandler().getInteger(key + ".Slot");
                     if (i == slot) {
@@ -86,13 +87,6 @@ public class ItemKitHandler {
                     }
                 }
             }
-
-            /*
-            for (final ItemStack i : this.items) {
-                final int slot = this.items.indexOf(i);
-                inv.setItem(slot, this.updateItem(i, p, this.kitKeys.get(slot)));
-            }
-             */
         }
     }
 
@@ -133,10 +127,10 @@ public class ItemKitHandler {
     }
 
     private @NotNull Boolean hasKitPermission(final Player p, final String kitKey) {
-        if (!this.ctw.getKitConfigHandler().getBoolean(kitKey + ".Requirements.Premission.Enabled")) {
+        if (!this.ctw.getKitConfigHandler().getBoolean(kitKey + ".Requirements.Permission.Enabled")) {
             return true;
         }
-        return p.hasPermission(this.ctw.getKitConfigHandler().getString(kitKey + ".Requirements.Premission.Node"));
+        return p.hasPermission(this.ctw.getKitConfigHandler().getString(kitKey + ".Requirements.Permission.Node"));
     }
 
     private void createItems() {
@@ -147,7 +141,7 @@ public class ItemKitHandler {
                     this.items.add(this.createItemStack(s));
                     this.kitKeys.add(s);
                 } catch (Exception e) {
-                    CTW.log.warning("Failed to add kit: " + s + " .Error: " + e.getMessage() + " .Details Below:");
+                    CTW.log.warning("Failed to add kit: " + s + ". Error: " + e.getMessage() + ". Details Below:");
                     e.printStackTrace();
                 }
             }
@@ -158,7 +152,7 @@ public class ItemKitHandler {
         final ItemStack item = new ItemStack(Material.getMaterial(this.ctw.getKitConfigHandler().getString(kitName + ".DisplayItem.Material")), 1, Short.parseShort(this.ctw.getKitConfigHandler().getString(kitName + ".DisplayItem.Data")));
         final ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(this.ctw.getKitConfigHandler().getString(kitName + ".DisplayItem.DisplayName"));
-        final ArrayList<String> lore = new ArrayList<String>();
+        final ArrayList<String> lore = new ArrayList<>();
         for (final String s : this.ctw.getKitConfigHandler().getStringList(kitName + ".DisplayItem.BaseLore")) {
             lore.add(s.replaceAll("&", "§"));
         }

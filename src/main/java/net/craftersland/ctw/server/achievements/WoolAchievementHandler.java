@@ -1,9 +1,11 @@
 package net.craftersland.ctw.server.achievements;
 
 import net.craftersland.ctw.server.CTW;
+import net.craftersland.ctw.server.database.CTWPlayer;
 import org.bukkit.Achievement;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,8 +19,9 @@ public class WoolAchievementHandler {
         this.ctw = ctw;
     }
 
-    public void loadInitialAchievements(final Player p) {
-        final int woolsPlaced = this.ctw.getPlayerWoolsPlacedHandler().getWoolsPlaced(p);
+    public void loadInitialAchievements(final @NotNull Player p) {
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int woolsPlaced = ctwPlayer.getWoolPlacements();
         if (woolsPlaced >= this.ctw.getConfigHandler().getInteger("Achievements.WoolMaster.Wools-For-IV")) {
             if (!this.achievements.containsKey(p)) {
                 this.achievements.put(p, WoolAchievements.WOOLMASTER4);
@@ -45,7 +48,8 @@ public class WoolAchievementHandler {
     }
 
     public void checkForAchievements(final Player p) {
-        final int woolsPlaced = this.ctw.getPlayerWoolsPlacedHandler().getWoolsPlaced(p);
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int woolsPlaced = ctwPlayer.getWoolPlacements();
         final WoolAchievements currentAcievement = this.achievements.get(p);
         if (woolsPlaced >= this.ctw.getConfigHandler().getInteger("Achievements.WoolMaster.Wools-For-IV")) {
             if (currentAcievement != WoolAchievements.WOOLMASTER4) {

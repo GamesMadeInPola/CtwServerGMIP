@@ -1,6 +1,7 @@
 package net.craftersland.ctw.server.game;
 
 import net.craftersland.ctw.server.CTW;
+import net.craftersland.ctw.server.database.CTWPlayer;
 import net.craftersland.ctw.server.utils.StartupKit;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -8,7 +9,11 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class GameEngine {
     private final CTW ctw;
@@ -48,7 +53,7 @@ public class GameEngine {
         }
     }
 
-    private void endGame(GameStages nextStage, Runnable victoryMethod) {
+    private void endGame(GameStages nextStage, @NotNull Runnable victoryMethod) {
         gameStage = GameStages.IDLE;
         victoryMethod.run();
         gameStage = nextStage;
@@ -58,7 +63,7 @@ public class GameEngine {
         try {
             if (countdown == 30) {
                 ctw.getMapHandler().getNextMap();
-                ctw.getPlayerKillsHandler().orderKills();
+                this.orderKills();
                 checkForServerRestart();
                 broadcastCountdown("CountdownStart");
             } else if (countdown == 20 || countdown == 10) {
@@ -137,6 +142,41 @@ public class GameEngine {
 
     private String formatColor(String message) {
         return message.replaceAll("&", "§");
+    }
+
+    public void orderKills() {
+
+        Map<String, Integer> top = new HashMap<>();
+        for (CTWPlayer ctwPlayer : ctw.getCTWPlayerRepository().get()) {
+            if (ctwPlayer.getTotalKills() == 0) continue;
+            top.put(ctwPlayer.getName(), ctwPlayer.getTotalKills());
+        }
+
+        List<Map.Entry<String, Integer>> top3 = top.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(3).toList();
+
+
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            if (player != null) {
+
+                player.sendMessage(" ");
+                player.sendMessage(" ");
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8+--------------------------------------+"));
+                player.sendMessage(" ");
+
+                try {
+
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&b       1ro Asesino &8- &7" + top3.get(0).getKey() + " &8- &e " + top3.get(0).getValue()));
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a         2do Asesino &8- &7" + top3.get(1).getKey() + " &8- &e " + top3.get(1).getValue()));
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&d           3er Asesino &8- &7" + top3.get(2).getKey() + " &8- &e " + top3.get(2).getValue()));
+
+                } catch (IndexOutOfBoundsException e) {
+                    ctw.getSendMessage().sendCenteredMessage(player, "&cNo han habido jugadores suficientes...");
+                }
+
+                player.sendMessage(" ");
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8+--------------------------------------+"));
+            }
+        });
     }
 
     public enum GameStages {

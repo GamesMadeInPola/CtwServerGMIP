@@ -31,11 +31,11 @@ public class Disconnecting implements Listener {
             this.ctw.getWoolHandler().removeCyanTakenByPlayer(p);
             this.ctw.getWoolHandler().removePinkTakenByPlayer(p);
             this.ctw.getWoolHandler().removeRedTakenByPlayer(p);
-            this.ctw.getPlayerScoreHandler().saveScoreToDatabase(p);
-            this.ctw.getPlayerScoreHandler().removeEffect(p);
-            this.ctw.getPlayerKillsHandler().saveKillsToDatabasse(p);
-            this.ctw.getPlayerWoolsPlacedHandler().saveDataToDatabasse(p);
-            this.ctw.getPlayerBowDistanceKillHandler().saveDataToDatabasse(p);
+            //this.ctw.getPlayerScoreHandler().saveScoreToDatabase(p);
+            //this.ctw.getPlayerScoreHandler().removeEffect(p);
+            //this.ctw.getPlayerKillsHandler().saveKillsToDatabasse(p);
+            //this.ctw.getPlayerWoolsPlacedHandler().saveDataToDatabasse(p);
+            //this.ctw.getPlayerBowDistanceKillHandler().saveDataToDatabasse(p);
             this.ctw.getWoolAchievementHandler().removeOnDisconnect(p);
             this.ctw.getShooterAchievementHandler().removeOnDisconnect(p);
             this.ctw.getMeleeAchievementHandler().removeOnDisconnect(p);

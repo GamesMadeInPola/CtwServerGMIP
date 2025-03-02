@@ -66,6 +66,7 @@ public class InventoryClick implements Listener {
                     if (event.isShiftClick()) {
                         event.setCancelled(true);
                     }
+                    if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
                     event.setCancelled(true);
                     this.ctw.getItemKitHandler().sendKit(p, event.getSlot());
                 } else if (event.getInventory().equals(this.ctw.getKitHandler().getEnchantsInventory(p)) && p.getGameMode() == GameMode.SURVIVAL) {

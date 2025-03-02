@@ -1,9 +1,11 @@
 package net.craftersland.ctw.server.achievements;
 
 import net.craftersland.ctw.server.CTW;
+import net.craftersland.ctw.server.database.CTWPlayer;
 import org.bukkit.Achievement;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,8 +19,9 @@ public class DistanceAchievementHandler {
         this.ctw = ctw;
     }
 
-    public void loadInitialAchievements(final Player p) {
-        final int distance = this.ctw.getPlayerBowDistanceKillHandler().getDistanceKill(p);
+    public void loadInitialAchievements(final @NotNull Player p) {
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int distance = ctwPlayer.getBowDistanceKill();
         if (distance >= this.ctw.getConfigHandler().getInteger("Achievements.Sniper.Distance-For-IV")) {
             if (!this.achievements.containsKey(p)) {
                 this.achievements.put(p, SniperAchievements.SNIPER4);
@@ -44,8 +47,9 @@ public class DistanceAchievementHandler {
         this.achievements.remove(p);
     }
 
-    public void checkForAchievements(final Player p) {
-        final int distance = this.ctw.getPlayerBowDistanceKillHandler().getDistanceKill(p);
+    public void checkForAchievements(final @NotNull Player p) {
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int distance = ctwPlayer.getBowDistanceKill();
         final SniperAchievements currentAcievement = this.achievements.get(p);
         if (distance >= this.ctw.getConfigHandler().getInteger("Achievements.Sniper.Distance-For-IV")) {
             if (currentAcievement != SniperAchievements.SNIPER4) {

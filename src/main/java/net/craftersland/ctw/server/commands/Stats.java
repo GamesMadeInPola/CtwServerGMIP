@@ -1,6 +1,7 @@
 package net.craftersland.ctw.server.commands;
 
 import net.craftersland.ctw.server.CTW;
+import net.craftersland.ctw.server.database.CTWPlayer;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -37,12 +38,14 @@ public class Stats implements CommandExecutor {
     }
 
     private void sendStats(final Player p) {
-        final int score = this.ctw.getPlayerScoreHandler().getScore(p);
-        final int meleeKills = this.ctw.getPlayerKillsHandler().getMeleeKills(p);
-        final int bowKills = this.ctw.getPlayerKillsHandler().getBowKills(p);
-        final int totalKills = meleeKills + bowKills;
-        final int distance = this.ctw.getPlayerBowDistanceKillHandler().getDistanceKill(p);
-        final int wools = this.ctw.getPlayerWoolsPlacedHandler().getWoolsPlaced(p);
+        CTWPlayer ctwPlayer = this.ctw.getCTWPlayerRepository().get(p.getUniqueId());
+        final int score = ctwPlayer.getScore();
+        final int totalKills = ctwPlayer.getTotalKills();
+        final int meleeKills = ctwPlayer.getMeleeKills();
+        final int bowKills = ctwPlayer.getBowKills();
+        final int distance = ctwPlayer.getBowDistanceKill();
+        final int woolsPickup = ctwPlayer.getWoolPickups();
+        final int woolsPlaced = ctwPlayer.getWoolPlacements();
         final List<String> rawMsg = new ArrayList<String>(this.ctw.getLanguageHandler().getMessageList("ChatStats"));
         final List<String> msg = new ArrayList<String>();
         for (final String s : rawMsg) {
@@ -51,8 +54,9 @@ public class Stats implements CommandExecutor {
             final String ssss = sss.replace("%bowKills%", new StringBuilder().append(bowKills).toString());
             final String sssss = ssss.replace("%totalKills%", new StringBuilder().append(totalKills).toString());
             final String ssssss = sssss.replace("%distance%", new StringBuilder().append(distance).toString());
-            final String sssssss = ssssss.replace("%wools%", new StringBuilder().append(wools).toString());
-            final String ssssssss = sssssss.replaceAll("&", "§");
+            final String sssssss = ssssss.replace("%wools%", new StringBuilder().append(woolsPickup).toString());
+            final String woolsPlacedString = sssssss.replace("%wools%", new StringBuilder().append(woolsPlaced).toString());
+            final String ssssssss = woolsPlacedString.replaceAll("&", "§");
             msg.add(ssssssss);
         }
         final String woolAchievement = this.ctw.getWoolAchievementHandler().getCurrentAchievement(p);

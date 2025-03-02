@@ -1,22 +1,160 @@
 package net.craftersland.ctw.server.database;
 
 import net.craftersland.ctw.server.CTW;
-import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.Optional;
+import java.util.UUID;
 
 public class DataHandler {
     private final CTW ctw;
-    private Connection conn;
 
     public DataHandler(final CTW ctw) {
         this.ctw = ctw;
     }
 
-    public boolean hasAccount(final Player player) {
+    public boolean saveCTWPlayer(@NotNull CTWPlayer ctwPlayer) {
+        try {
+            if (userExists(ctwPlayer.getUuid())) {
+                return updateCTWPlayer(ctwPlayer);
+            } else {
+                return createCTWPlayer(ctwPlayer);
+            }
+        } catch (Exception e) {
+            CTW.log.warning("Error guardando al usuario " + ctwPlayer.getUuid() + " en la base de datos: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean userExists(@NotNull UUID uuid) {
+        try {
+            return doesPlayerExist(uuid);
+        } catch (Exception e) {
+            ctw.getLogger().severe("No se pudo comprobar al usuario " + uuid + " en la base de datos: " + e.getMessage());
+            return false;
+        }
+    }
+
+    protected boolean doesPlayerExist(@NotNull UUID uuid) {
+
+        boolean userExists = false;
+        String sql = "SELECT `player_uuid` FROM `" + this.ctw.getConfigHandler().getString("Database.TableName") + "` WHERE `player_uuid` = ? LIMIT 1";
+
+        try (Connection connection = ctw.getMysqlSetup().getDataSource().getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            ctw.getLogger().info("Conexión abierta: " + connection);
+
+            preparedStatement.setString(1, uuid.toString());
+
+            try (ResultSet result = preparedStatement.executeQuery()) {
+                userExists = result.next();
+            }
+
+        } catch (SQLException e) {
+            ctw.getLogger().severe("Error: " + e.getMessage());
+        }
+
+        return userExists;
+    }
+
+    protected boolean createCTWPlayer(@NotNull CTWPlayer ctwPlayer) {
+
+        boolean success = false;
+        String sql = "INSERT INTO `" + this.ctw.getConfigHandler().getString("Database.TableName") +
+                "`(`player_uuid`, `player_name`, `effects`, `score`, `total_kills`, `melee_kills`, `defense_kills`, `bow_kills`, `bow_distance_kill`, `wool_pickups`, `wool_placed`, `last_seen`) " + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = ctw.getMysqlSetup().getDataSource().getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            ctw.getLogger().info("Conexión abierta: " + connection);
+
+            preparedStatement.setString(1, ctwPlayer.getUuid().toString());
+            preparedStatement.setString(2, ctwPlayer.getName());
+            preparedStatement.setString(3, ctwPlayer.getEffects());
+            preparedStatement.setInt(4, ctwPlayer.getScore());
+            preparedStatement.setInt(5, ctwPlayer.getTotalKills());
+            preparedStatement.setInt(6, ctwPlayer.getDefenseKills());
+            preparedStatement.setInt(7, ctwPlayer.getBowKills());
+            preparedStatement.setInt(8, ctwPlayer.getBowDistanceKill());
+            preparedStatement.setInt(9, ctwPlayer.getWoolPickups());
+            preparedStatement.setInt(10, ctwPlayer.getWoolPlacements());
+            preparedStatement.setString(11, String.valueOf(ctwPlayer.getLastSeen()));
+
+            int affectedRows = preparedStatement.executeUpdate();
+            success = affectedRows > 0;
+
+        } catch (SQLIntegrityConstraintViolationException e) {
+            ctw.getLogger().severe("El usuario con UUID" + ctwPlayer.getUuid() + " ya existe en la base de datos: " + e.getMessage());
+        } catch (SQLException e) {
+            ctw.getLogger().severe("Error insertando a un jugador en la base de datos: " + e.getMessage());
+        }
+
+        return success;
+    }
+
+    public boolean updateCTWPlayer(@NotNull CTWPlayer ctwPlayer) {
+
+        String sql = "UPDATE `" + this.ctw.getConfigHandler().getString("Database.TableName") + "` " +
+                "SET `player_name` = ?, `effects` = ?, `score` = ?, `melee_kills` = ?, `defense_kills` = ?, `bow_kills` = ?, `bow_distance_kill` = ?, `wool_placed` = ?, `last_seen` = ? " +
+                "WHERE `player_uuid` = ?";
+
+        try (Connection connection = ctw.getMysqlSetup().getDataSource().getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, ctwPlayer.getName());
+            preparedStatement.setString(2, ctwPlayer.getEffects());
+            preparedStatement.setInt(3, ctwPlayer.getScore());
+            preparedStatement.setInt(4, ctwPlayer.getTotalKills());
+            preparedStatement.setInt(5, ctwPlayer.getDefenseKills());
+            preparedStatement.setInt(6, ctwPlayer.getBowKills());
+            preparedStatement.setInt(7, ctwPlayer.getBowDistanceKill());
+            preparedStatement.setInt(8, ctwPlayer.getWoolPlacements());
+            preparedStatement.setString(9, String.valueOf(ctwPlayer.getLastSeen()));
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;
+
+        } catch (SQLException e) {
+            ctw.getLogger().severe("Error actualizando a un jugador en la base de datos: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public Optional<CTWPlayer> getCTWPlayer(@NotNull UUID uuid){
+        CTWPlayer ctwPlayer = new CTWPlayer(uuid, Bukkit.getPlayer(uuid).getName(), 0, 0, 0, 0, 0, 0, 0, 0);
+        String sql = "SELECT * FROM `" + this.ctw.getConfigHandler().getString("Database.TableName") + "` WHERE `player_uuid` = ? LIMIT 1";
+
+        try (Connection connection = ctw.getMysqlSetup().getDataSource().getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, uuid.toString());
+
+            try (ResultSet result = preparedStatement.executeQuery()) {
+                if (result.next()) {
+                    ctwPlayer.setName(result.getString("player_name"));
+                    ctwPlayer.setEffects(result.getString("effects"));
+                    ctwPlayer.setScore(result.getInt("score"));
+                    ctwPlayer.setTotalKills(result.getInt("melee_kills"));
+                    ctwPlayer.setDefenseKills(result.getInt("defense_kills"));
+                    ctwPlayer.setMeleeKills(result.getInt("melee_kills"));
+                    ctwPlayer.setBowKills(result.getInt("bow_kills"));
+                    ctwPlayer.setBowDistanceKill(result.getInt("bow_distance_kill"));
+                    ctwPlayer.setWoolPickups(result.getInt("wool_pickups"));
+                    ctwPlayer.setWoolPlacements(result.getInt("wool_placed"));
+                    ctwPlayer.setLastSeen(Long.parseLong(result.getString("last_seen")));
+                }
+            }
+
+        } catch (SQLException e) {
+            ctw.getLogger().severe("Error obteniendo a un jugador de la base de datos: " + e.getMessage());
+        }
+
+        return Optional.of(ctwPlayer);
+    }
+
+    /**
+    public boolean hasAccount(final @NotNull Player player) {
         PreparedStatement preparedUpdateStatement = null;
         ResultSet result = null;
         try {
@@ -55,7 +193,7 @@ public class DataHandler {
         return false;
     }
 
-    public boolean createAccount(final Player player) {
+    public boolean createAccount(final @NotNull Player player) {
         PreparedStatement preparedStatement = null;
         try {
             this.conn = this.ctw.getMysqlSetup().getConnection();
@@ -434,4 +572,5 @@ public class DataHandler {
         }
         return null;
     }
+     */
 }
