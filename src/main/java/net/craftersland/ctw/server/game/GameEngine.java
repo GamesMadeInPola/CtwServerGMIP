@@ -7,6 +7,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.scoreboard.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
@@ -15,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class GameEngine {
+public class GameEngine implements Listener {
     private final CTW ctw;
     public GameStages gameStage;
     public String motd;
@@ -43,6 +47,31 @@ public class GameEngine {
         }, 20L, 20L);
 
         Bukkit.getScheduler().runTaskTimerAsynchronously(ctw, () -> ctw.map = ctw.getMapHandler().currentMap, 20L, 1000L);
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(ctw, () -> {
+            if (player.isOnline()) {
+                setScoreboard(player);
+            }
+        }, 5L);
+    }
+
+    private void setScoreboard(Player player) {
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        if (manager == null) return;
+
+        Scoreboard scoreboard = manager.getNewScoreboard();
+        Objective objective = scoreboard.registerNewObjective("Stats", "dummy");
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        objective.setDisplayName(ChatColor.YELLOW + "Scoreboard");
+
+        Score score = objective.getScore(ChatColor.GREEN + "Kills: ");
+        score.setScore(0);
+
+        player.setScoreboard(scoreboard);
     }
 
     private void checkForWoolsPlaced() {
@@ -103,35 +132,6 @@ public class GameEngine {
         Bukkit.getOnlinePlayers().forEach(StartupKit::setUnbreakableArmor);
     }
 
-    private void redTeamWonStage() {
-        declareVictory(TeamHandler.Teams.RED, "RedVictory");
-    }
-
-    private void blueTeamWonStage() {
-        declareVictory(TeamHandler.Teams.BLUE, "BlueVictory");
-    }
-
-    private void declareVictory(TeamHandler.Teams team, String victoryKey) {
-        try {
-            List<Player> winners = (team == TeamHandler.Teams.RED) ? ctw.getTeamHandler().redTeamCopy() : ctw.getTeamHandler().blueTeamCopy();
-            winners.forEach(p -> Bukkit.dispatchCommand(ctw.getServer().getConsoleSender(), "mysterydust add " + p.getName() + " 12"));
-            setWonSpectators(winners);
-            ctw.getSoundHandler().broadcastDragon();
-            setPlayerGameMode(GameMode.SPECTATOR);
-            ctw.getMessageUtils().broadcastGameStats();
-            ctw.getEffectUtils().sendTextParticles(team);
-            Bukkit.getScheduler().runTaskLaterAsynchronously(ctw, () -> ctw.getMessageUtils().broadcastTitleMessage(
-                    formatColor(ctw.getLanguageHandler().getMessage("TitleMessages." + victoryKey + ".title")),
-                    formatColor(ctw.getLanguageHandler().getMessage("TitleMessages." + victoryKey + ".subtitle"))), 30L);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void setWonSpectators(List<Player> players) {
-        players.forEach(p -> ctw.getPlayerHandler().playerSetWonSpectator(p));
-    }
-
     private void setPlayerGameMode(GameMode mode) {
         Bukkit.getOnlinePlayers().forEach(p -> {
             if (ctw.getTeamHandler().isBlueTeam(p) || ctw.getTeamHandler().isRedTeam(p)) {
@@ -142,41 +142,6 @@ public class GameEngine {
 
     private String formatColor(String message) {
         return message.replaceAll("&", "§");
-    }
-
-    public void orderKills() {
-
-        Map<String, Integer> top = new HashMap<>();
-        for (CTWPlayer ctwPlayer : ctw.getCTWPlayerRepository().get()) {
-            if (ctwPlayer.getTotalKills() == 0) continue;
-            top.put(ctwPlayer.getName(), ctwPlayer.getTotalKills());
-        }
-
-        List<Map.Entry<String, Integer>> top3 = top.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(3).toList();
-
-
-        Bukkit.getOnlinePlayers().forEach(player -> {
-            if (player != null) {
-
-                player.sendMessage(" ");
-                player.sendMessage(" ");
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8+--------------------------------------+"));
-                player.sendMessage(" ");
-
-                try {
-
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&b       1ro Asesino &8- &7" + top3.get(0).getKey() + " &8- &e " + top3.get(0).getValue()));
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a         2do Asesino &8- &7" + top3.get(1).getKey() + " &8- &e " + top3.get(1).getValue()));
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&d           3er Asesino &8- &7" + top3.get(2).getKey() + " &8- &e " + top3.get(2).getValue()));
-
-                } catch (IndexOutOfBoundsException e) {
-                    ctw.getSendMessage().sendCenteredMessage(player, "&cNo han habido jugadores suficientes...");
-                }
-
-                player.sendMessage(" ");
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8+--------------------------------------+"));
-            }
-        });
     }
 
     public enum GameStages {
